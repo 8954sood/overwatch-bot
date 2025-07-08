@@ -7,7 +7,6 @@ from discord.ext import commands
 
 from core.local.database_manager import DatabaseManager
 
-
 class OverwatchBot(commands.Bot):
 
     def __init__(self, *args, **kwargs):

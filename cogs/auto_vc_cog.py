@@ -1,0 +1,135 @@
+import discord
+from discord.ext import commands, tasks
+from discord import app_commands
+import re
+from core.overwatch_bot import OverwatchBot
+
+class AutoVcCog(commands.Cog):
+    def __init__(self, bot: OverwatchBot):
+        self.bot = bot
+        self.managed_channels = set() # 메모리에 자동 생성된 채널 ID를 캐싱
+
+    async def cog_load(self):
+        """Cog가 로드될 때 (봇 시작 시) 데이터베이스에서 상태를 복원합니다."""
+        all_managed_ids = await self.bot.db.auto_vc.get_all_managed_channels()
+        self.managed_channels = set(all_managed_ids)
+        print(f"[AutoVC] {len(self.managed_channels)}개의 관리 채널 정보를 DB에서 복원했습니다.")
+        self.cleanup_check.start()
+
+    def cog_unload(self):
+        """Cog가 언로드될 때 (봇 종료 또는 리로드 시) 루프를 중지합니다."""
+        self.cleanup_check.cancel()
+
+    @tasks.loop(minutes=10)
+    async def cleanup_check(self):
+        """주기적으로 DB와 실제 채널 상태를 동기화합니다."""
+        if not self.bot.is_ready():
+            await self.bot.wait_until_ready()
+
+        all_managed_ids = list(self.managed_channels)
+        for channel_id in all_managed_ids:
+            try:
+                channel = await self.bot.fetch_channel(channel_id)
+                if isinstance(channel, discord.VoiceChannel) and not any(m for m in channel.members if not m.bot):
+                    await channel.delete(reason="주기적인 자동 생성 채널 정리")
+                    await self.remove_channel_from_db(channel.id)
+            except discord.NotFound:
+                await self.remove_channel_from_db(channel_id)
+            except Exception as e:
+                print(f"[AutoVC Cleanup] 채널 정리 중 오류 발생 (ID: {channel_id}): {e}")
+
+    @app_commands.command(name="자동통화방_설정", description="자동 생성 통화방을 설정합니다.")
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.rename(generator_channel="생성기채널", category="생성될카테고리", base_name="채널이름")
+    async def setup_auto_vc(self, interaction: discord.Interaction, generator_channel: discord.VoiceChannel, category: discord.CategoryChannel, base_name: str):
+        await self.bot.db.auto_vc.add_generator(generator_channel.id, category.id, base_name, interaction.guild.id)
+        await interaction.response.send_message(f"자동 통화방이 설정되었습니다: {generator_channel.mention}에 접속하면 -> {category.name}에 `{base_name} N` 채널이 생성됩니다.", ephemeral=True)
+
+    @app_commands.command(name="자동통화방_삭제", description="자동 생성 통화방 설정을 삭제합니다.")
+    @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.rename(generator_channel="설정된_생성기채널")
+    async def remove_auto_vc(self, interaction: discord.Interaction, generator_channel: discord.VoiceChannel):
+        await self.bot.db.auto_vc.remove_generator(generator_channel.id)
+        await interaction.response.send_message(f"자동 통화방 설정이 삭제되었습니다: {generator_channel.mention}", ephemeral=True)
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        if after.channel:
+            generator = await self.bot.db.auto_vc.get_generator(after.channel.id)
+            if generator:
+                await self._create_and_move_user(member, generator)
+
+        if before.channel and before.channel.id in self.managed_channels:
+            if not any(m for m in before.channel.members if not m.bot):
+                try:
+                    await before.channel.delete(reason="자동 생성 채널 정리")
+                    await self.remove_channel_from_db(before.channel.id)
+                except discord.NotFound:
+                    await self.remove_channel_from_db(before.channel.id)
+                except Exception as e:
+                    print(f"[AutoVC] 채널 삭제 중 오류 발생: {e}")
+
+    async def _create_and_move_user(self, member: discord.Member, generator_config):
+        guild = member.guild
+        category = guild.get_channel(generator_config.category_id)
+        if not category or not isinstance(category, discord.CategoryChannel):
+            return
+
+        managed_channels = []
+        for ch in category.voice_channels:
+            if ch.id in self.managed_channels and ch.name.startswith(generator_config.base_name):
+                match = re.search(r'(\d+)$', ch.name)
+                if match:
+                    managed_channels.append((int(match.group(1)), ch))
+
+        managed_channels.sort(key=lambda x: x[0])
+        existing_numbers = {num for num, _ in managed_channels}
+
+        new_number = 1
+        while new_number in existing_numbers:
+            new_number += 1
+
+        new_channel_name = f"{generator_config.base_name} {new_number}"
+
+        # ✅ 채널 배치 계산 방식 교체
+        insert_index = 0
+        for i, (num, _) in enumerate(managed_channels):
+            if new_number < num:
+                break
+            insert_index = i + 1
+
+        if managed_channels:
+            if insert_index == 0:
+                position = managed_channels[0][1].position - 1
+                print("position1")
+            else:
+                position = managed_channels[insert_index - 1][1].position + 1
+                print("position2")
+        else:
+            position = category.position - 1
+            print("position3")
+
+        overwrites = {member: discord.PermissionOverwrite(manage_channels=True, manage_roles=True)}
+
+        try:
+            new_channel = await category.create_voice_channel(
+                new_channel_name,
+                overwrites=overwrites,
+                position=position,
+                reason=f"{member.display_name}의 요청으로 자동 생성"
+            )
+            await self.add_channel_to_db(new_channel.id, guild.id, generator_config.generator_channel_id)
+            await member.move_to(new_channel)
+        except (discord.Forbidden, discord.HTTPException) as e:
+            print(f"자동 통화방 생성 실패: {e}")
+
+    async def add_channel_to_db(self, channel_id: int, guild_id: int, generator_id: int):
+        await self.bot.db.auto_vc.add_managed_channel(channel_id, guild_id, generator_id)
+        self.managed_channels.add(channel_id)
+
+    async def remove_channel_from_db(self, channel_id: int):
+        await self.bot.db.auto_vc.remove_managed_channel(channel_id)
+        self.managed_channels.discard(channel_id)
+
+async def setup(bot: OverwatchBot):
+    await bot.add_cog(AutoVcCog(bot))

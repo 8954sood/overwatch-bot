@@ -1,3 +1,9 @@
+-- 데이터베이스의 버전을 저장하는 테이블
+CREATE TABLE IF NOT EXISTS db_meta (
+    key TEXT PRIMARY KEY,                  -- version
+    value TEXT NOT NULL                    -- version name (1)
+);
+
 -- 유저의 기본 정보를 저장하는 테이블
 CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY,           -- Discord 유저 ID
@@ -57,4 +63,20 @@ CREATE TABLE IF NOT EXISTS moderation_logs (
     created_at TEXT NOT NULL,                  -- 처벌 시간 (ISO 8601)
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (moderator_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+-- 자동 생성 통화방 설정 테이블
+CREATE TABLE IF NOT EXISTS auto_vc_generators (
+    generator_channel_id INTEGER PRIMARY KEY, -- 생성기 역할을 하는 통화방 ID
+    category_id INTEGER NOT NULL,              -- 새 통화방이 생성될 카테고리 ID
+    base_name TEXT NOT NULL,                   -- 새 통화방의 기본 이름
+    guild_id INTEGER NOT NULL                  -- 서버 ID
+);
+
+-- 자동 생성되어 관리 중인 통화방 목록
+CREATE TABLE IF NOT EXISTS managed_auto_vc_channels (
+    channel_id INTEGER PRIMARY KEY,            -- 자동 생성된 통화방의 ID
+    guild_id INTEGER NOT NULL,                 -- 서버 ID
+    generator_channel_id INTEGER NOT NULL,     -- 이 채널을 생성한 생성기 ID
+    FOREIGN KEY (generator_channel_id) REFERENCES auto_vc_generators(generator_channel_id) ON DELETE CASCADE
 );
