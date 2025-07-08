@@ -70,38 +70,3 @@ class OverwatchBot(commands.Bot):
             await self.db.close()
             print("Database connection closed.")
         await super().close()
-
-    # async def on_ready(self):
-    #     self.db = await DatabaseManager.create()
-    #     for cog in os.listdir("./cogs"):
-    #         if cog.endswith(".py"):
-    #             if cog == "__init__.py":
-    #                 continue
-    #             try:
-    #                 await self.load_extension(f'cogs.{cog.lower()[:-3]}')
-    #                 print(f'{cog} cog loaded.')
-    #             except Exception as e:
-    #                 print(f'Failed to load {cog} cog: {e}')
-    #
-    #     self.tree.copy_global_to(guild=discord.Object(id=563710323387793408))
-    #     await self.tree.sync()
-    #     print(f'Logged in as {self.user} (ID: {self.user.id})')
-    #     print('------')
-
-    # async def setup_hook(self):
-    #     # 봇 시작 시 DB 연결
-    #     self.db = await aiosqlite.connect('bot.db')
-    #     await self.db.execute('''
-    #             CREATE TABLE IF NOT EXISTS users (
-    #                 id INTEGER PRIMARY KEY,
-    #                 username TEXT,
-    #                 points INTEGER DEFAULT 0
-    #             )
-    #         ''')
-    #     await self.db.commit()
-    #
-    # async def close(self):
-    #     # 봇 종료 시 DB 연결 해제
-    #     if self.db:
-    #         await self.db.close()
-    #     await super().close()

@@ -6,6 +6,7 @@ class User:
     user_id: int
     display_name: str
     balance: int
+    birthday: Optional[str] = None
 
 @dataclass
 class ActivityLog:

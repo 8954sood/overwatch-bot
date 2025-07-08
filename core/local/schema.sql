@@ -2,7 +2,8 @@
 CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY,           -- Discord 유저 ID
     display_name TEXT NOT NULL,            -- 서버에서 사용하는 닉네임
-    balance INTEGER NOT NULL DEFAULT 0     -- 재화 (정수형으로 저장)
+    balance INTEGER NOT NULL DEFAULT 0,     -- 재화 (정수형으로 저장)
+    birthday TEXT                          -- 생일 (YYYY-MM-DD)
 );
 
 -- 상점에 등록된 상품 정보를 저장하는 테이블

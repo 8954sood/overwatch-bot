@@ -87,3 +87,17 @@ class UserRepository:
     async def reset_all_balances(self) -> None:
         await self.db.execute("UPDATE users SET balance = 0")
         await self.db.commit()
+
+    async def set_birthday(self, user_id: int, birthday: str) -> None:
+        await self.db.execute(
+            "UPDATE users SET birthday = ? WHERE user_id = ?",
+            (birthday, user_id)
+        )
+        await self.db.commit()
+
+    async def get_users_with_birthday(self, today: str) -> List[User]:
+        cursor = await self.db.execute(
+            "SELECT * FROM users WHERE birthday = ?", (today,)
+        )
+        rows = await cursor.fetchall()
+        return [User(user_id=r['user_id'], display_name=r['display_name'], balance=r['balance'], birthday=r['birthday']) for r in rows]
