@@ -46,5 +46,41 @@ class ModerationCog(commands.Cog):
             embed.set_footer(text=f"사건 ID: {case_id}")
             await log_channel.send(embed=embed)
 
+    @app_commands.command(name="유저정보", description="유저의 상세 정보를 조회합니다.")
+    @app_commands.checks.has_permissions(manage_messages=True)
+    async def user_info(self, interaction: discord.Interaction, target: discord.Member):
+        await interaction.response.defer(ephemeral=True)
+
+        await self.bot.db.users.get_or_create_user(target.id, target.display_name)
+        logs = await self.bot.db.moderation.get_user_logs(target.id)
+
+        embed = discord.Embed(title=f"{target.display_name}님의 정보", color=target.color)
+        embed.set_thumbnail(url=target.avatar.url if target.avatar else target.default_avatar.url)
+
+        embed.add_field(name="닉네임", value=target.mention, inline=True)
+        embed.add_field(name="고유번호 (ID)", value=target.id, inline=True)
+
+        embed.add_field(name="디스코드 가입일", value=target.created_at.strftime("%Y-%m-%d %H:%M:%S"), inline=False)
+        embed.add_field(name="서버 가입일", value=target.joined_at.strftime("%Y-%m-%d %H:%M:%S"), inline=False)
+
+        if logs:
+            total_warnings = sum(log.count for log in logs if log.action == 'WARN' and log.count is not None)
+            ban_count = sum(1 for log in logs if log.action == 'BAN')
+            punishment_summary = f"경고 {total_warnings}회, 차단 {ban_count}회"
+
+            log_text = ""
+            for log in logs[:5]: # 최근 5개의 기록만 표시
+                action = "경고" if log.action == 'WARN' else "차단"
+                reason = log.reason or "사유 없음"
+                count_text = f" ({log.count}회)" if log.action == 'WARN' and log.count else ""
+                log_text += f"- **{action}{count_text}**: {reason} (ID: {log.case_id})\n"
+            
+            embed.add_field(name="처벌 요약", value=punishment_summary, inline=False)
+            embed.add_field(name="최근 처벌 내역 (최대 5개)", value=log_text, inline=False)
+        else:
+            embed.add_field(name="처벌 내역", value="처벌 기록이 없습니다.", inline=False)
+
+        await interaction.followup.send(embed=embed)
+
 async def setup(bot: OverwatchBot):
     await bot.add_cog(ModerationCog(bot))

@@ -17,9 +17,9 @@ class BirthdayCog(commands.Cog):
         if not self.check_birthdays.is_running():
             print("[TASK] check_birthdays Started.")
             self.check_birthdays.start()
-            print(f"[TASK] check_birthdays {self.check_birthdays.next_iteration}")
 
     def cog_unload(self):
+        print("[TASK] check_birthdays Stopped.")
         self.check_birthdays.cancel()
 
     @app_commands.command(name="생일등록", description="당신의 생일을 등록합니다. (예: 01-15)")
