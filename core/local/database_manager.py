@@ -5,6 +5,7 @@ import discord
 from datetime import datetime
 
 from core.local.repository import UserRepository, ShopRepository
+from core.local.repository.moderation_repository import ModerationRepository
 
 DB_PATH = './database.db'
 
@@ -13,6 +14,7 @@ class DatabaseManager:
         self._db = connection
         self.users = UserRepository(self._db)
         self.shop = ShopRepository(self._db)
+        self.moderation = ModerationRepository(self._db)
 
     @classmethod
     async def create(cls):

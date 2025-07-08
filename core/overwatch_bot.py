@@ -7,6 +7,7 @@ from discord.ext import commands
 
 from core.local.database_manager import DatabaseManager
 
+
 class OverwatchBot(commands.Bot):
 
     def __init__(self, *args, **kwargs):
@@ -30,7 +31,6 @@ class OverwatchBot(commands.Bot):
         print("Loading cogs...")
         for filename in os.listdir("./cogs"):
             # .py로 끝나고, __init__.py가 아닌 파일만 대상으로 함
-            print(filename, filename.endswith(".py"), not filename.startswith("__"))
             if filename.endswith(".py") and not filename.startswith("__"):
                 try:
                     # 파일명에서 .py를 제거하여 모듈 경로 생성 (e.g., cogs.economy)

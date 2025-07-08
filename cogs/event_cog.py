@@ -10,16 +10,14 @@ class EventCog(commands.Cog):
         self.bot = bot
         self.voice_sessions = {}  # {user_id: start_time_utc}
 
-    def cog_unload(self):
-        self.check_expired_roles.cancel()
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print("EventsCog is ready.")
-
+    async def cog_load(self):
         if not self.check_expired_roles.is_running():
-            print("EventsCog loaded and task started.")
+            print("[TASK] check_expired_roles Started.")
             self.check_expired_roles.start()
+
+    def cog_unload(self):
+        print("[TASK] check_expired_roles Stopped.")
+        self.check_expired_roles.cancel()
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

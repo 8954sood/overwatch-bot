@@ -45,3 +45,16 @@ CREATE TABLE IF NOT EXISTS daily_activity (
     PRIMARY KEY (user_id, activity_date),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
+
+-- 처벌 내역을 기록하는 테이블
+CREATE TABLE IF NOT EXISTS moderation_logs (
+    case_id INTEGER PRIMARY KEY AUTOINCREMENT, -- 사건 ID
+    user_id INTEGER NOT NULL,                  -- 대상 유저 ID
+    moderator_id INTEGER NOT NULL,             -- 관리자 ID
+    action TEXT NOT NULL,                      -- 처벌 종류 ('WARN', 'BAN')
+    reason TEXT,                               -- 사유
+    count INTEGER,                             -- 경고 횟수 (경고 처벌 시)
+    created_at TEXT NOT NULL,                  -- 처벌 시간 (ISO 8601)
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (moderator_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
