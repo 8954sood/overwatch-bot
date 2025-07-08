@@ -101,13 +101,10 @@ class AutoVcCog(commands.Cog):
         if managed_channels:
             if insert_index == 0:
                 position = managed_channels[0][1].position - 1
-                print("position1")
             else:
                 position = managed_channels[insert_index - 1][1].position + 1
-                print("position2")
         else:
             position = category.position - 1
-            print("position3")
 
         overwrites = {member: discord.PermissionOverwrite(manage_channels=True, manage_roles=True)}
 
