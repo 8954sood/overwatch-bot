@@ -90,3 +90,12 @@ CREATE TABLE IF NOT EXISTS role_messages (
     role_buttons TEXT NOT NULL,                -- 역할 버튼 정보 (JSON)
     PRIMARY KEY (guild_id, channel_id)
 );
+
+-- 질문-답변 채널 설정 테이블
+CREATE TABLE IF NOT EXISTS qna_channels (
+    channel_id INTEGER PRIMARY KEY,            -- 질문 채널 ID
+    guild_id INTEGER NOT NULL,                 -- 서버 ID
+    pinned_message_id INTEGER,             -- 고정 안내 메시지 ID
+    pinned_title TEXT,                         -- 고정 안내 메시지 제목
+    pinned_content TEXT                        -- 고정 안내 메시지 내용
+);

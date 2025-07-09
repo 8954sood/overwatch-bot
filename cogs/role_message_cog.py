@@ -23,7 +23,7 @@ def parse_color(color_hex: str) -> Optional[discord.Color]:
 class RoleMessageCog(commands.Cog, name="역할메시지"):
     def __init__(self, bot: OverwatchBot):
         self.bot = bot
-        self.role_message_repo: RoleMessageRepository = self.bot.db.role_message_repo
+        self.role_message_repo: RoleMessageRepository = self.bot.db.role_message
 
     @commands.Cog.listener()
     async def on_ready(self):

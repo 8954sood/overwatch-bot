@@ -8,6 +8,7 @@ from core.local.repository import UserRepository, ShopRepository
 from core.local.repository.auto_vc_repository import AutoVcRepository
 from core.local.repository.moderation_repository import ModerationRepository
 from core.local.repository.role_message_repository import RoleMessageRepository
+from core.local.repository.qna_repository import QnaRepository
 
 DB_PATH = './database.db'
 
@@ -20,7 +21,8 @@ class DatabaseManager:
         self.shop = ShopRepository(self._db)
         self.moderation = ModerationRepository(self._db)
         self.auto_vc = AutoVcRepository(self._db)
-        self.role_message_repo = RoleMessageRepository(self._db)
+        self.role_message = RoleMessageRepository(self._db)
+        self.qna = QnaRepository(self._db)
 
     @classmethod
     async def create(cls):

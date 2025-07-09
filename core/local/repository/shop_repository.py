@@ -23,7 +23,7 @@ class ShopRepository:
         return cursor.rowcount > 0
 
     async def get_all_items(self) -> List[ShopItem]:
-        cursor = await self.db.execute("SELECT * FROM shop_items")
+        cursor = await self.db.execute("SELECT * FROM shop_items ORDER BY price")
         rows = await cursor.fetchall()
         return [ShopItem(**dict(r)) for r in rows]
 
