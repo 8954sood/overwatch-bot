@@ -4,6 +4,7 @@ from discord.ext import commands
 import datetime
 
 from core import OverwatchBot
+from core.utiles import money_to_string
 from view import ShopView
 
 
@@ -22,29 +23,29 @@ class ShopCog(commands.Cog, name="상점"):
             return await interaction.followup.send("잔고가 부족합니다.", ephemeral=True)
 
         # 구매 처리
-        await self.bot.db.users.update_balance(user.id, -item.price)
+        await self.bot.db.users.update_balance(user.user_id, -item.price)
 
         if item.item_type == "ITEM":
-            await self.bot.db.shop.add_to_inventory(user.id, item.id)
+            await self.bot.db.shop.add_to_inventory(user.user_id, item.id)
             message = f"아이템 **{item.name}**을(를) 구매하여 인벤토리에 추가했습니다."
 
         elif item.item_type == "ROLE":
             role = interaction.guild.get_role(item.role_id)
             if not role:
                 # 롤백
-                await self.bot.db.users.update_balance(user.id, item.price)
+                await self.bot.db.users.update_balance(user.user_id, item.price)
                 return await interaction.followup.send("역할을 찾을 수 없어 구매를 취소합니다.", ephemeral=True)
 
             try:
                 await interaction.user.add_roles(role)
             except discord.Forbidden:
-                await self.bot.db.users.update_balance(user.id, item.price)
+                await self.bot.db.users.update_balance(user.user_id, item.price)
                 return await interaction.followup.send("역할을 부여할 권한이 없습니다.", ephemeral=True)
 
             message = f"역할 **{role.name}**을(를) 구매하여 부여받았습니다."
             if item.duration_days and item.duration_days > 0:
                 expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=item.duration_days)
-                await self.bot.db.shop.add_temporary_role(user.id, role.id, expires_at.isoformat())
+                await self.bot.db.shop.add_temporary_role(user.user_id, role.id, expires_at.isoformat())
                 message += f"\n이 역할은 **{item.duration_days}일** 후에 만료됩니다."
 
         await interaction.followup.send(message, ephemeral=True)
@@ -55,12 +56,14 @@ class ShopCog(commands.Cog, name="상점"):
 
     @app_commands.command(name="상점", description="구매 가능한 아이템 및 역할 목록을 봅니다.")
     async def shop(self, interaction: discord.Interaction):
+        user = await self.bot.db.users.get_or_create_user(interaction.user.id, interaction.user.display_name)
         items = await self.bot.db.shop.get_all_items()
         if not items:
             return await interaction.response.send_message("상점에 등록된 상품이 없습니다.", ephemeral=True)
 
         embed = discord.Embed(title="🛒 상점", description="아래 목록에서 구매할 상품을 선택하세요.",
                               color=discord.Color.from_rgb(255, 204, 77))
+        embed.add_field(name="잔액", value=money_to_string(user.balance))
         view = ShopView(items, self.purchase_callback)
         await interaction.response.send_message(embed=embed, view=view)
 
