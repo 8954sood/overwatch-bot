@@ -80,3 +80,13 @@ CREATE TABLE IF NOT EXISTS managed_auto_vc_channels (
     generator_channel_id INTEGER NOT NULL,     -- 이 채널을 생성한 생성기 ID
     FOREIGN KEY (generator_channel_id) REFERENCES auto_vc_generators(generator_channel_id) ON DELETE CASCADE
 );
+-- 역할 부여 메시지 정보를 저장하는 테이블
+CREATE TABLE IF NOT EXISTS role_messages (
+    guild_id INTEGER NOT NULL,                 -- 서버 ID
+    channel_id INTEGER NOT NULL UNIQUE,        -- 역할 메시지가 있는 채널 ID (고유)
+    message_id INTEGER NOT NULL,               -- 역할 메시지 ID
+    content TEXT NOT NULL,                     -- 메시지 내용
+    color TEXT NOT NULL DEFAULT '#3498DB',     -- 임베드 색상 (헥스 코드)
+    role_buttons TEXT NOT NULL,                -- 역할 버튼 정보 (JSON)
+    PRIMARY KEY (guild_id, channel_id)
+);
