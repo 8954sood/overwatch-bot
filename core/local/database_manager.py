@@ -50,7 +50,14 @@ class DatabaseManager:
     async def _get_db_version(connection: aiosqlite.Connection) -> int:
         async with connection.execute("SELECT value FROM db_meta WHERE key = 'version'") as cursor:
             row = await cursor.fetchone()
-            return int(row['value']) if row else 0
+
+            if row:
+                return int(row['value'])
+
+        await connection.execute("INSERT INTO db_meta (key, value) VALUES (?, ?)", ("version", 1))
+        await connection.commit()
+        return 1
+
 
     @classmethod
     async def _migrate(cls, connection: aiosqlite.Connection, current_version: int):

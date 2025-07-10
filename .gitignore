@@ -135,7 +135,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+.dev.env
 .envrc
 .venv
 env/
@@ -209,3 +209,5 @@ __marimo__/
 .idea
 .DS_Store
 database.db
+.env
+.dev.env

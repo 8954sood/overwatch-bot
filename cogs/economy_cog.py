@@ -96,7 +96,7 @@ class EconomyCog(commands.Cog):
     @app_commands.command(name="재화지급", description="유저에게 재화를 지급합니다.")
     @app_commands.rename(user="대상", money="금액")
     @app_commands.describe(user="재화를 지급할 대상을 지정해주세요", money="재화의 지급량을 지정해주세요")
-    @commands.has_permissions(administrator=True)
+    @app_commands.checks.has_permissions(administrator=True)
     async def give_money(self, interaction: Interaction, user: discord.User, money: int):
         before_user = await self.bot.db.users.get_or_create_user(user.id, user.display_name)
         now_money = await self.bot.db.users.update_balance(user.id, money)

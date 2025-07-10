@@ -35,7 +35,7 @@ class BirthdayCog(commands.Cog):
         await self.bot.db.users.set_birthday(interaction.user.id, 생일)
         await interaction.response.send_message(f"{interaction.user.mention}님의 생일이 {생일}로 등록되었습니다.", ephemeral=True)
 
-    @tasks.loop(time=datetime.time(hour=11, minute=16, tzinfo=KST))  # 매일 자정에 실행
+    @tasks.loop(time=datetime.time(hour=8, minute=0, tzinfo=KST))  # 매일 8시 실행
     async def check_birthdays(self):
         print("check_birthdays")
         today = datetime.datetime.now(tz=KST).strftime("%m-%d")
@@ -45,7 +45,7 @@ class BirthdayCog(commands.Cog):
         for user in users:
             birthday_user.append(f"<@{user.user_id}>")
         if channel:
-            await channel.send(f"🎉 {", ".join(birthday_user)}님의 생일을 축하합니다! 🎉")
+            await channel.send(f"🎉 {', '.join(birthday_user)}님의 생일을 축하합니다! 🎉")
 
 async def setup(bot: OverwatchBot):
     await bot.add_cog(BirthdayCog(bot))

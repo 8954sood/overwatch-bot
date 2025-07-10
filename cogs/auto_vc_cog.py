@@ -38,15 +38,16 @@ class AutoVcCog(commands.Cog):
             except Exception as e:
                 print(f"[AutoVC Cleanup] 채널 정리 중 오류 발생 (ID: {channel_id}): {e}")
 
-    @app_commands.command(name="자동통화방_설정", description="자동 생성 통화방을 설정합니다.")
-    @app_commands.checks.has_permissions(administrator=True)
+    auto_vc_commands = app_commands.Group(name="자동통화방", description="자동 생성 통화방과 관련된 명령어입니다.",
+                                    default_permissions=discord.Permissions(administrator=True))
+
+    @auto_vc_commands.command(name="설정", description="자동 생성 통화방을 설정합니다.")
     @app_commands.rename(generator_channel="생성기채널", category="생성될카테고리", base_name="채널이름")
     async def setup_auto_vc(self, interaction: discord.Interaction, generator_channel: discord.VoiceChannel, category: discord.CategoryChannel, base_name: str):
         await self.bot.db.auto_vc.add_generator(generator_channel.id, category.id, base_name, interaction.guild.id)
         await interaction.response.send_message(f"자동 통화방이 설정되었습니다: {generator_channel.mention}에 접속하면 -> {category.name}에 `{base_name} N` 채널이 생성됩니다.", ephemeral=True)
 
-    @app_commands.command(name="자동통화방_삭제", description="자동 생성 통화방 설정을 삭제합니다.")
-    @app_commands.checks.has_permissions(administrator=True)
+    @auto_vc_commands.command(name="삭제", description="자동 생성 통화방 설정을 삭제합니다.")
     @app_commands.rename(generator_channel="설정된_생성기채널")
     async def remove_auto_vc(self, interaction: discord.Interaction, generator_channel: discord.VoiceChannel):
         await self.bot.db.auto_vc.remove_generator(generator_channel.id)
