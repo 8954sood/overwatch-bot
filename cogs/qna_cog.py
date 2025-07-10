@@ -81,6 +81,9 @@ class QnaCog(commands.Cog):
         if message.author.bot:
             return
 
+        if message.guild is None or message.guild.id != self.bot.guild_id:
+            return
+
         # Case 1: Message is in a thread within a QnA channel
         if isinstance(message.channel, discord.Thread):
             qna_channel = await self.qna_repo.get_channel_by_id(message.channel.parent_id)
@@ -128,6 +131,9 @@ class QnaCog(commands.Cog):
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message):
         if message.author.bot:
+            return
+
+        if message.guild is None or message.guild.id != self.bot.guild_id:
             return
 
         qna_channel = await self.qna_repo.get_channel_by_id(message.channel.id)

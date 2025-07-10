@@ -15,6 +15,17 @@ class OverwatchBot(commands.Bot):
         self.guild_id = int(os.getenv("GUILD_ID"))
         print(self.guild_id)
 
+
+        """
+        특정 서버에서만 구동되도록 전역 Cog에 적용되는 설정입니다.
+        """
+        @self.check
+        async def globally_check_guild(ctx: commands.Context) -> bool:
+            if ctx.guild is None or ctx.guild.id != self.guild_id:
+                ctx.guild_check_failed = True
+                return False
+            return True
+
     async def setup_hook(self) -> None:
         """
         봇이 디스코드에 로그인하기 전에 비동기적으로 실행되는 초기화 함수입니다.

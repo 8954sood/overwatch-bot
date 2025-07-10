@@ -7,10 +7,11 @@ from discord import app_commands
 import datetime
 from pytz import timezone
 
+from core import OverwatchBot
 
 
 class DeleteCog(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: OverwatchBot):
         self.bot = bot
         try:
             self.delete_message_send_channel = int(os.getenv('DELETE_MESSAGE_SEND_CHANNEL'))

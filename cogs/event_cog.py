@@ -24,6 +24,9 @@ class EventCog(commands.Cog):
         if message.author.bot or not message.guild:
             return
 
+        if message.guild is None or message.guild.id != self.bot.guild_id:
+            return
+
         await self.bot.db.users.get_or_create_user(message.author.id, message.author.display_name)
         await self.bot.db.users.log_message_activity(message.author.id)
 

@@ -55,6 +55,9 @@ class AutoVcCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        if member.guild is None or member.guild.id != self.bot.guild_id:
+            return
+
         if after.channel:
             generator = await self.bot.db.auto_vc.get_generator(after.channel.id)
             if generator:

@@ -11,6 +11,9 @@ class BoostCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
+        if before.guild is None or before.guild.id != self.bot.guild_id:
+            return
+
         if not before.premium_since and after.premium_since:
             channel = self.bot.get_channel(self.boost_channel)  # 부스트 메시지를 보낼 채널 ID
             if channel:
