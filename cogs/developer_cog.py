@@ -44,5 +44,22 @@ class DeveloperCog(commands.Cog):
         await self.bot.tree.sync(guild=guild_obj)
         await ctx.send(f"Successfully synced {len(self.bot.cogs)} cogs.")
 
+    @commands.command(name="list_commands")
+    @commands.is_owner()
+    async def list_commands(self, ctx: commands.Context):
+        """Lists all registered app commands."""
+        commands = self.bot.tree.get_commands()
+        if not commands:
+            await ctx.send("No app commands are currently registered.")
+            return
+
+        embed = discord.Embed(title="Registered App Commands", color=discord.Color.blue())
+        for command in commands:
+            description = f"Description: {command.description}"
+            embed.add_field(name=f"/{command.name}", value=description, inline=False)
+
+        await ctx.send(embed=embed)
+
+
 async def setup(bot: OverwatchBot):
     await bot.add_cog(DeveloperCog(bot))

@@ -58,6 +58,8 @@ class OverwatchBot(commands.Bot):
         #    전역 커맨드로 배포할 경우 이 부분을 수정해야 합니다.
         print("Syncing command tree...")
         guild_obj = discord.Object(id=self.guild_id)
+        self.tree.clear_commands(guild=guild_obj)
+
         self.tree.copy_global_to(guild=guild_obj)
         await self.tree.sync(guild=guild_obj)
         print("Command tree synced.")
