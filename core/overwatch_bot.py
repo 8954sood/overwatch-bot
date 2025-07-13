@@ -59,6 +59,8 @@ class OverwatchBot(commands.Bot):
         print("Syncing command tree...")
         guild_obj = discord.Object(id=self.guild_id)
         self.tree.clear_commands(guild=guild_obj)
+        # await self.tree.sync(guild=guild_obj)
+        # print("Clear command tree.")
 
         self.tree.copy_global_to(guild=guild_obj)
         await self.tree.sync(guild=guild_obj)

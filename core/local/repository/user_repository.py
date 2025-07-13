@@ -81,7 +81,7 @@ class UserRepository:
         row = await cursor.fetchone()
         return ActivityStats(
             total_messages=row[0] or 0,
-            total_voice_minutes=(row[1] or 0)
+            total_voice_minutes=(row[1] or 0) // 60
         )
 
     async def reset_all_balances(self) -> None:

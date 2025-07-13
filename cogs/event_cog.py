@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands, tasks
 import datetime
+import random
+import re
 
 from core import OverwatchBot
 
@@ -79,6 +81,33 @@ class EventCog(commands.Cog):
     @check_expired_roles.before_loop
     async def before_check_roles(self):
         await self.bot.wait_until_ready()
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member):
+        if member.guild.id != self.bot.guild_id:
+            return
+
+        user = await self.bot.db.users.get_user(member.id)
+
+        if user:
+            try:
+                await member.edit(nick=user.display_name)
+            except discord.Forbidden:
+                print(f"Failed to set nickname for {member.display_name} due to permissions.")
+            return
+
+        display_name = member.display_name
+        if not re.match("^[a-zA-Z가-힣]+$", display_name):
+            adjectives = ['행복한', '밝은', '멋진', '빠른', '똑똑한']
+            nouns = ['호랑이', '독수리', '사자', '판다', '늑대']
+            display_name = f"{random.choice(adjectives)}{random.choice(nouns)}"
+
+        try:
+            await member.edit(nick=display_name)
+        except discord.Forbidden:
+            print(f"Failed to set nickname for {member.display_name} due to permissions.")
+
+        await self.bot.db.users.get_or_create_user(member.id, display_name)
 
 
 async def setup(bot: OverwatchBot):
