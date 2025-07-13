@@ -34,3 +34,11 @@ class ModerationRepository:
         )
         rows = await cursor.fetchall()
         return [ModerationLog(**row) for row in rows]
+
+    async def get_user_warring(self, user_id: int) -> int:
+        cursor = await self.db.execute(
+            "SELECT COALESCE(SUM(count), 0) FROM moderation_logs WHERE user_id = ? AND action = 'WARN'",
+            (user_id,)
+        )
+        row = await cursor.fetchone()
+        return row[0]

@@ -18,7 +18,31 @@ class ModerationCog(commands.Cog):
         case_id = await self.bot.db.moderation.add_warning(target.id, interaction.user.id, reason, count)
         await interaction.response.send_message(f"{target.mention}에게 경고 {count}회를 부여했습니다. (사유: {reason})", ephemeral=True)
 
+        warning_count = await self.bot.db.moderation.get_waring_count(target.id)
         log_channel = self.bot.get_channel(self.moderation_channel) # 로그 채널 ID
+
+        if warning_count >= 3:
+            ban_reason = f"누적 경고 3회 이상 ({warning_count}회)으로 자동 차단되었습니다."
+
+            try:
+                await target.send(f"'{interaction.guild.name}' 서버에서 다음 사유로 차단되었습니다: {ban_reason}")
+            except discord.Forbidden:
+                pass
+
+            await target.ban(reason=ban_reason)
+            await interaction.followup.send(f"{target.mention}의 누적 경고가 {warning_count}회가 되어 자동으로 차단했습니다.",
+                                            ephemeral=True)
+            if log_channel:
+                embed = discord.Embed(title="🚨 자동 차단", color=discord.Color.red())
+                embed.add_field(name="대상", value=f"{target.mention} ({target.id})", inline=False)
+                embed.add_field(name="조치 실행자", value=self.bot.user.mention, inline=False)
+                embed.add_field(name="트리거한 관리자", value=interaction.user.mention, inline=False)
+                embed.add_field(name="사유", value=ban_reason, inline=False)
+                embed.set_footer(text=f"경고 부여 사건 ID: {case_id}")
+                await log_channel.send(embed=embed)
+
+            return 
+
         if log_channel:
             embed = discord.Embed(title="경고 처분", color=discord.Color.orange())
             embed.add_field(name="대상", value=target.mention, inline=False)
