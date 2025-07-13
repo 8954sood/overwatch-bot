@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS auto_vc_generators (
 -- 자동 생성되어 관리 중인 통화방 목록
 CREATE TABLE IF NOT EXISTS managed_auto_vc_channels (
     channel_id INTEGER PRIMARY KEY,            -- 자동 생성된 통화방의 ID
+    owner_id INTEGER NOT NULL,                 -- 채널 소유자 ID
     guild_id INTEGER NOT NULL,                 -- 서버 ID
     generator_channel_id INTEGER NOT NULL,     -- 이 채널을 생성한 생성기 ID
     FOREIGN KEY (generator_channel_id) REFERENCES auto_vc_generators(generator_channel_id) ON DELETE CASCADE

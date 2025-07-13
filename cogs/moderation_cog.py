@@ -41,7 +41,7 @@ class ModerationCog(commands.Cog):
                 embed.set_footer(text=f"경고 부여 사건 ID: {case_id}")
                 await log_channel.send(embed=embed)
 
-            return 
+            return
 
         if log_channel:
             embed = discord.Embed(title="경고 처분", color=discord.Color.orange())

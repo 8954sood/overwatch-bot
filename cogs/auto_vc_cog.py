@@ -117,20 +117,61 @@ class AutoVcCog(commands.Cog):
                 new_channel_name,
                 overwrites=overwrites,
                 position=position,
+                user_limit=5,  # 기본 인원 제한 5명
                 reason=f"{member.display_name}의 요청으로 자동 생성"
             )
-            await self.add_channel_to_db(new_channel.id, guild.id, generator_config.generator_channel_id)
+            await self.add_channel_to_db(new_channel.id, member.id, guild.id, generator_config.generator_channel_id)
             await member.move_to(new_channel)
         except (discord.Forbidden, discord.HTTPException) as e:
             print(f"자동 통화방 생성 실패: {e}")
 
-    async def add_channel_to_db(self, channel_id: int, guild_id: int, generator_id: int):
-        await self.bot.db.auto_vc.add_managed_channel(channel_id, guild_id, generator_id)
+    async def add_channel_to_db(self, channel_id: int, owner_id: int, guild_id: int, generator_id: int):
+        await self.bot.db.auto_vc.add_managed_channel(channel_id, owner_id, guild_id, generator_id)
         self.managed_channels.add(channel_id)
 
     async def remove_channel_from_db(self, channel_id: int):
         await self.bot.db.auto_vc.remove_managed_channel(channel_id)
         self.managed_channels.discard(channel_id)
+
+    # --- User Commands ---
+    vc = app_commands.Group(name="통화방", description="현재 속한 통화방을 관리합니다.")
+
+    @vc.command(name="이름", description="통화방의 이름을 변경합니다.")
+    @app_commands.describe(새이름="새로운 채널 이름")
+    async def change_channel_name(self, interaction: discord.Interaction, 새이름: str):
+        if not interaction.user.voice or not interaction.user.voice.channel:
+            return await interaction.response.send_message("음성 채널에 먼저 참여해주세요.", ephemeral=True)
+
+        channel = interaction.user.voice.channel
+        owner_id = await self.bot.db.auto_vc.get_channel_owner(channel.id)
+
+        if owner_id != interaction.user.id:
+            return await interaction.response.send_message("채널 소유자만 이름을 변경할 수 있습니다.", ephemeral=True)
+
+        try:
+            await channel.edit(name=새이름)
+            await interaction.response.send_message(f"채널 이름이 '{새이름}'(으)로 변경되었습니다.", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.response.send_message("채널 이름을 변경할 권한이 없습니다.", ephemeral=True)
+
+    @vc.command(name="인원", description="통화방의 최대 인원을 변경합니다.")
+    @app_commands.describe(인원="새로운 최대 인원 (1-99)")
+    async def change_channel_limit(self, interaction: discord.Interaction, 인원: app_commands.Range[int, 1, 99]):
+        if not interaction.user.voice or not interaction.user.voice.channel:
+            return await interaction.response.send_message("음성 채널에 먼저 참여해주세요.", ephemeral=True)
+
+        channel = interaction.user.voice.channel
+        owner_id = await self.bot.db.auto_vc.get_channel_owner(channel.id)
+
+        if owner_id != interaction.user.id:
+            return await interaction.response.send_message("채널 소유자만 인원을 변경할 수 있습니다.", ephemeral=True)
+
+        try:
+            await channel.edit(user_limit=인원)
+            await interaction.response.send_message(f"채널 최대 인원이 {인원}명으로 변경되었습니다.", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.response.send_message("채널 인원을 변경할 권한이 없습니다.", ephemeral=True)
+
 
 async def setup(bot: OverwatchBot):
     await bot.add_cog(AutoVcCog(bot))

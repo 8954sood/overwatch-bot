@@ -37,10 +37,10 @@ class AutoVcRepository:
 
     # --- Managed Channels --- #
 
-    async def add_managed_channel(self, channel_id: int, guild_id: int, generator_channel_id: int) -> None:
+    async def add_managed_channel(self, channel_id: int, owner_id: int, guild_id: int, generator_channel_id: int) -> None:
         await self.db.execute(
-            "INSERT INTO managed_auto_vc_channels (channel_id, guild_id, generator_channel_id) VALUES (?, ?, ?)",
-            (channel_id, guild_id, generator_channel_id)
+            "INSERT INTO managed_auto_vc_channels (channel_id, owner_id, guild_id, generator_channel_id) VALUES (?, ?, ?, ?)",
+            (channel_id, owner_id, guild_id, generator_channel_id)
         )
         await self.db.commit()
 
@@ -52,3 +52,8 @@ class AutoVcRepository:
         cursor = await self.db.execute("SELECT channel_id FROM managed_auto_vc_channels")
         rows = await cursor.fetchall()
         return [row['channel_id'] for row in rows]
+
+    async def get_channel_owner(self, channel_id: int) -> Optional[int]:
+        cursor = await self.db.execute("SELECT owner_id FROM managed_auto_vc_channels WHERE channel_id = ?", (channel_id,))
+        row = await cursor.fetchone()
+        return row['owner_id'] if row else None
