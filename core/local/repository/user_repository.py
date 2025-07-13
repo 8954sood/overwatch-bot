@@ -101,3 +101,10 @@ class UserRepository:
         )
         rows = await cursor.fetchall()
         return [User(user_id=r['user_id'], display_name=r['display_name'], balance=r['balance'], birthday=r['birthday']) for r in rows]
+
+    async def update_display_name(self, user_id: int, new_display_name: str) -> None:
+        await self.db.execute(
+            "UPDATE users SET display_name = ? WHERE user_id = ?",
+            (new_display_name, user_id)
+        )
+        await self.db.commit()

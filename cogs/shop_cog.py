@@ -5,7 +5,7 @@ import datetime
 
 from core import OverwatchBot
 from core.utiles import money_to_string
-from view import ShopView
+from view import ShopView, NicknameChangeModal
 
 
 class ShopCog(commands.Cog, name="상점"):
@@ -13,14 +13,13 @@ class ShopCog(commands.Cog, name="상점"):
         self.bot = bot
 
     async def purchase_callback(self, interaction: discord.Interaction, item_id: int):
-        await interaction.response.defer(ephemeral=True)
         item = await self.bot.db.shop.get_item_by_id(item_id)
         if not item:
-            return await interaction.followup.send("존재하지 않는 상품입니다.", ephemeral=True)
+            return await interaction.response.send_message("존재하지 않는 상품입니다.", ephemeral=True)
 
         user = await self.bot.db.users.get_or_create_user(interaction.user.id, interaction.user.display_name)
         if user.balance < item.price:
-            return await interaction.followup.send("잔고가 부족합니다.", ephemeral=True)
+            return await interaction.response.send_message("잔고가 부족합니다.", ephemeral=True)
 
         # 구매 처리
         await self.bot.db.users.update_balance(user.user_id, -item.price)
@@ -28,31 +27,43 @@ class ShopCog(commands.Cog, name="상점"):
         if item.item_type == "ITEM":
             await self.bot.db.shop.add_to_inventory(user.user_id, item.id)
             message = f"아이템 **{item.name}**을(를) 구매하여 인벤토리에 추가했습니다."
+            await interaction.response.send_message(message, ephemeral=True)
 
         elif item.item_type == "ROLE":
             role = interaction.guild.get_role(item.role_id)
             if not role:
-                # 롤백
                 await self.bot.db.users.update_balance(user.user_id, item.price)
-                return await interaction.followup.send("역할을 찾을 수 없어 구매를 취소합니다.", ephemeral=True)
+                return await interaction.response.send_message("역할을 찾을 수 없어 구매를 취소합니다.", ephemeral=True)
 
             try:
                 await interaction.user.add_roles(role)
             except discord.Forbidden:
                 await self.bot.db.users.update_balance(user.user_id, item.price)
-                return await interaction.followup.send("역할을 부여할 권한이 없습니다.", ephemeral=True)
+                return await interaction.response.send_message("역할을 부여할 권한이 없습니다.", ephemeral=True)
 
             message = f"역할 **{role.name}**을(를) 구매하여 부여받았습니다."
             if item.duration_days and item.duration_days > 0:
                 expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=item.duration_days)
                 await self.bot.db.shop.add_temporary_role(user.user_id, role.id, expires_at.isoformat())
                 message += f"\n이 역할은 **{item.duration_days}일** 후에 만료됩니다."
+            await interaction.response.send_message(message, ephemeral=True)
 
-        await interaction.followup.send(message, ephemeral=True)
-        # 상점 메시지 업데이트 (선택사항: 구매 후 목록을 비활성화)
-        # view = ShopView([], self.purchase_callback)
-        # view.stop()
-        # await interaction.message.edit(view=view)
+        elif item.item_type == "NICKNAME_CHANGE":
+
+            async def nickname_callback(modal_interaction, new_nickname):
+                try:
+                    await modal_interaction.user.edit(nick=new_nickname)
+                    await self.bot.db.users.update_display_name(user.user_id, new_nickname)
+                    await modal_interaction.response.send_message(f"닉네임을 성공적으로 '{new_nickname}'(으)로 변경했습니다.", ephemeral=True)
+                except discord.Forbidden:
+                    await self.bot.db.users.update_balance(user.user_id, item.price)  # 롤백
+                    await modal_interaction.response.send_message("닉네임을 변경할 권한이 없습니다.", ephemeral=True)
+                except discord.HTTPException as e:
+                    await self.bot.db.users.update_balance(user.user_id, item.price)  # 롤백
+                    await modal_interaction.response.send_message(f"닉네임 변경 중 오류가 발생했습니다: {e}", ephemeral=True)
+
+            modal = NicknameChangeModal(nickname_callback)
+            await interaction.response.send_modal(modal)
 
     @app_commands.command(name="상점", description="구매 가능한 아이템 및 역할 목록을 봅니다.")
     async def shop(self, interaction: discord.Interaction):
@@ -97,12 +108,33 @@ class ShopCog(commands.Cog, name="상점"):
         )
         await interaction.response.send_message(f"아이템 '{이름}'을(를) 상점에 추가했습니다.", ephemeral=True)
 
+    @shop_admin.command(name="닉네임변경권추가", description="상점에 닉네임 변경권을 추가합니다.")
+    @app_commands.describe(가격="변경권의 가격", 이모지="표시할 이모지")
+    async def add_nickname_change_item(self, interaction: discord.Interaction, 가격: app_commands.Range[int, 0],
+                                       이모지: str = None):
+        await self.bot.db.shop.add_item(
+            item_type="NICKNAME_CHANGE",
+            name="닉네임 변경권",
+            price=가격,
+            emoji=이모지
+        )
+        await interaction.response.send_message("'닉네임 변경권'을(를) 상점에 추가했습니다.", ephemeral=True)
+
+    async def item_name_autocomplete(self, interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+        items = await self.bot.db.shop.get_all_items()
+        choices = [
+            app_commands.Choice(name=item.name, value=item.name)
+            for item in items if current.lower() in item.name.lower()
+        ]
+        return choices[:25]
+
     @shop_admin.command(name="삭제", description="상점에서 상품을 삭제합니다.")
-    @app_commands.describe(상품이름="삭제할 상품의 정확한 이름")
-    async def remove_item(self, interaction: discord.Interaction, 상품이름: str):
-        success = await self.bot.db.shop.remove_item_by_name(상품이름)
+    @app_commands.describe(상품="삭제할 상품을 선택하세요.")
+    @app_commands.autocomplete(상품=item_name_autocomplete)
+    async def remove_item(self, interaction: discord.Interaction, 상품: str):
+        success = await self.bot.db.shop.remove_item_by_name(상품)
         if success:
-            await interaction.response.send_message(f"상품 '{상품이름}'을(를) 상점에서 삭제했습니다.", ephemeral=True)
+            await interaction.response.send_message(f"상품 '{상품}'을(를) 상점에서 삭제했습니다.", ephemeral=True)
         else:
             await interaction.response.send_message("해당 이름의 상품을 찾을 수 없습니다.", ephemeral=True)
 

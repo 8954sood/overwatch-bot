@@ -1,3 +1,4 @@
+import os
 from datetime import timezone, timedelta
 
 import discord
@@ -12,6 +13,7 @@ KST = timezone(timedelta(hours=9)) #datetime.datetime.now().astimezone().tzinfo 
 class BirthdayCog(commands.Cog):
     def __init__(self, bot: OverwatchBot):
         self.bot = bot
+        self.channel = int(os.getenv("BIRTH_DAY_MESSAGE_SEND_CHANNEL"))
 
     async def cog_load(self):
         if not self.check_birthdays.is_running():
@@ -40,8 +42,12 @@ class BirthdayCog(commands.Cog):
         print("check_birthdays")
         today = datetime.datetime.now(tz=KST).strftime("%m-%d")
         users = await self.bot.db.users.get_users_with_birthday(today)
-        channel = self.bot.get_channel(1076722349489012776)
+        channel = self.bot.get_channel(self.channel)
         birthday_user = []
+
+        if len(users) == 0:
+            return
+
         for user in users:
             birthday_user.append(f"<@{user.user_id}>")
         if channel:

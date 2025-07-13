@@ -32,3 +32,19 @@ class ShopSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         await self.view.purchase_callback(interaction, int(self.values[0]))
+
+
+class NicknameChangeModal(discord.ui.Modal, title="닉네임 변경"):
+    new_nickname = discord.ui.TextInput(
+        label="새 닉네임",
+        placeholder="변경할 닉네임을 입력하세요.",
+        min_length=2,
+        max_length=32
+    )
+
+    def __init__(self, purchase_callback):
+        super().__init__()
+        self.purchase_callback = purchase_callback
+
+    async def on_submit(self, modal_interaction: discord.Interaction):
+        await self.purchase_callback(modal_interaction, self.new_nickname.value)
