@@ -76,7 +76,7 @@ class ShopCog(commands.Cog, name="상점"):
                               color=discord.Color.from_rgb(255, 204, 77))
         embed.add_field(name="잔액", value=money_to_string(user.balance))
         view = ShopView(items, self.purchase_callback)
-        await interaction.response.send_message(embed=embed, view=view)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     # --- 상점 관리 명령어 그룹 ---
     shop_admin = app_commands.Group(name="상점관리", description="상점 상품을 관리합니다.",

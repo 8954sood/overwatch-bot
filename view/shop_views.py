@@ -39,7 +39,7 @@ class NicknameChangeModal(discord.ui.Modal, title="닉네임 변경"):
         label="새 닉네임",
         placeholder="변경할 닉네임을 입력하세요.",
         min_length=2,
-        max_length=32
+        max_length=8
     )
 
     def __init__(self, purchase_callback):
