@@ -1,3 +1,5 @@
+import traceback
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -86,32 +88,47 @@ class ShopCog(commands.Cog, name="상점"):
     @app_commands.describe(역할="판매할 역할", 가격="역할의 가격", 기간="역할 유지 기간 (일, 0은 영구)", 이모지="표시할 이모지")
     async def add_role(self, interaction: discord.Interaction, 역할: discord.Role, 가격: app_commands.Range[int, 0],
                        기간: app_commands.Range[int, 0], 이모지: str = None):
-        await self.bot.db.shop.add_item(
-            item_type="ROLE",
-            name=역할.name,
-            price=가격,
-            duration_days=기간,
-            role_id=역할.id,
-            emoji=이모지
-        )
-        await interaction.response.send_message(f"역할 '{역할.name}'을(를) 상점에 추가했습니다.", ephemeral=True)
+        try:
+            if not self.bot.db.shop.get_item_by_name(역할.name) is None:
+                return await interaction.response.send_message(f"중복된 이름의 아이템이 상점에 존재합니다.")
+            await self.bot.db.shop.add_item(
+                item_type="ROLE",
+                name=역할.name,
+                price=가격,
+                duration_days=기간,
+                role_id=역할.id,
+                emoji=이모지
+            )
+            await interaction.response.send_message(f"역할 '{역할.name}'을(를) 상점에 추가했습니다.", ephemeral=True)
+        except Exception as E:
+            traceback.print_exc()
+            await interaction.response.send_message(f"아이템 추가에 실패했습니다.\n사유 : ${E}", ephemeral=True)
+
 
     @shop_admin.command(name="아이템추가", description="상점에 판매할 아이템을 추가합니다.")
     @app_commands.describe(이름="판매할 아이템 이름", 가격="아이템 가격", 이모지="표시할 이모지")
     async def add_item(self, interaction: discord.Interaction, 이름: str, 가격: app_commands.Range[int, 0],
                        이모지: str = None):
-        await self.bot.db.shop.add_item(
-            item_type="ITEM",
-            name=이름,
-            price=가격,
-            emoji=이모지
-        )
-        await interaction.response.send_message(f"아이템 '{이름}'을(를) 상점에 추가했습니다.", ephemeral=True)
+        try:
+            if not self.bot.db.shop.get_item_by_name(이름) is None:
+                return await interaction.response.send_message(f"중복된 이름의 아이템이 상점에 존재합니다.")
+            await self.bot.db.shop.add_item(
+                item_type="ITEM",
+                name=이름,
+                price=가격,
+                emoji=이모지
+            )
+            await interaction.response.send_message(f"아이템 '{이름}'을(를) 상점에 추가했습니다.", ephemeral=True)
+        except Exception as E:
+            traceback.print_exc()
+            await interaction.response.send_message(f"아이템 추가에 실패했습니다.\n사유 : ${E}", ephemeral=True)
 
     @shop_admin.command(name="닉네임변경권추가", description="상점에 닉네임 변경권을 추가합니다.")
     @app_commands.describe(가격="변경권의 가격", 이모지="표시할 이모지")
     async def add_nickname_change_item(self, interaction: discord.Interaction, 가격: app_commands.Range[int, 0],
                                        이모지: str = None):
+        if not self.bot.db.shop.get_item_by_name("닉네임 변경권") is None:
+            return await interaction.response.send_message(f"닉네임 변경권 아이템이 이미 상점에 존재합니다.")
         await self.bot.db.shop.add_item(
             item_type="NICKNAME_CHANGE",
             name="닉네임 변경권",

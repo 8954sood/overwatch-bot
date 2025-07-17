@@ -32,6 +32,11 @@ class ShopRepository:
         row = await cursor.fetchone()
         return ShopItem(**dict(row)) if row else None
 
+    async def get_item_by_name(self, item_name: str) -> Optional[ShopItem]:
+        cursor = await self.db.execute("SELECT * FROM shop_items WHERE name = ?", (item_name,))
+        row = await cursor.fetchone()
+        return ShopItem(**dict(row)) if row else None
+
     async def get_user_inventory(self, user_id: int) -> List[InventoryItem]:
         cursor = await self.db.execute(
             "SELECT s.name, COUNT(i.id) as count FROM user_inventory i "

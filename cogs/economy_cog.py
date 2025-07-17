@@ -1,3 +1,4 @@
+import os
 from typing import Union, Optional
 
 import discord
@@ -18,6 +19,16 @@ class EconomyCog(commands.Cog):
         self.cooldowns = {}  # {command_name: {user_id: cooldown_end_time}}
         self.ladder_cooldown = datetime.timedelta(hours=2)
         self.slot_machine_cooldown = datetime.timedelta(hours=2)
+        self.emojis = {
+            '메달': os.getenv("GAMBLE_1_EMOJI"),
+            '보석': os.getenv("GAMBLE_2_EMOJI"),
+            '달러': os.getenv("GAMBLE_3_EMOJI"),
+            '주머니': os.getenv("GAMBLE_4_EMOJI"),
+            '100': os.getenv("GAMBLE_5_EMOJI"),
+            'wheel1': os.getenv("GAMBLE_A1_EMOJI"),
+            'wheel2': os.getenv("GAMBLE_A2_EMOJI"),
+            'wheel3': os.getenv("GAMBLE_A3_EMOJI"),
+        }
 
     def check_cooldown(self, command_name: str, user_id: int, cooldown: datetime.timedelta):
         now = datetime.datetime.now()
@@ -196,19 +207,8 @@ class EconomyCog(commands.Cog):
         if user.balance < 베팅금액:
             return await interaction.response.send_message("잔고가 부족합니다.", ephemeral=True)
 
-        emojis = {
-            '메달': '<:1_:1394519333182378094>',
-            '보석': '<:2_:1394519341814517810>',
-            '달러': '<:3_:1394519350911697067>',
-            '주머니': '<:4_:1394519360332365875>',
-            '100': '<:5_:1394519367286263990>',
-            'wheel1': '<a:slot_final_1:1394563025444540456>',
-            'wheel2': '<a:slot_final_2:1394563037989568523>',
-            'wheel3': '<a:slot_final_3:1394563050194866316>',
-        }
-
         embed = discord.Embed(title="슬롯머신", description="슬롯머신을 돌리고 있습니다.", color=discord.Color.gold())
-        await interaction.response.send_message(content=f"{emojis['wheel1']}{emojis['wheel2']}{emojis['wheel3']}", embeds=[embed])
+        await interaction.response.send_message(content=f"{self.emojis['wheel1']}{self.emojis['wheel2']}{self.emojis['wheel3']}", embeds=[embed])
 
         await asyncio.sleep(1.8)
 
@@ -218,22 +218,22 @@ class EconomyCog(commands.Cog):
 
         if chance <= 79.99999:  # 꽝
             multiplier = 0
-            result_emojis = random.sample(list(emojis.values())[:-3], 3)
+            result_emojis = random.sample(list(self.emojis.values())[:-3], 3)
         elif chance <= 89.99999:  # 메달
             multiplier = 2
-            result_emojis = [emojis['메달']] * 3
+            result_emojis = [self.emojis['메달']] * 3
         elif chance <= 94.99999:  # 보석
             multiplier = 3
-            result_emojis = [emojis['보석']] * 3
+            result_emojis = [self.emojis['보석']] * 3
         elif chance <= 97.49999:  # 달러
             multiplier = 5
-            result_emojis = [emojis['달러']] * 3
+            result_emojis = [self.emojis['달러']] * 3
         elif chance <= 99.49999:  # 주머니
             multiplier = 7
-            result_emojis = [emojis['주머니']] * 3
+            result_emojis = [self.emojis['주머니']] * 3
         else:  # 100
             multiplier = 10
-            result_emojis = [emojis['100']] * 3
+            result_emojis = [self.emojis['100']] * 3
 
         winnings = int(베팅금액 * multiplier)
         final_balance_change = winnings - 베팅금액
