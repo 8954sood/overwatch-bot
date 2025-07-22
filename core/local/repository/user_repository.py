@@ -1,7 +1,7 @@
 import aiosqlite
 from typing import Optional, List
 import datetime
-from core.model import User, ActivityLog, ActivityStats, ActivityLeaderboardEntry
+from core.model import User, ActivityLog, ActivityStats
 
 
 class UserRepository:
@@ -83,30 +83,6 @@ class UserRepository:
             total_messages=row[0] or 0,
             total_voice_minutes=(row[1] or 0) // 60
         )
-
-    async def get_activity_leaderboard(self, limit: int = 10) -> List[ActivityLeaderboardEntry]:
-        cursor = await self.db.execute(
-            "SELECT u.user_id, u.display_name, "
-            "COALESCE(SUM(a.message_count), 0) AS messages, "
-            "COALESCE(SUM(a.voice_seconds) / 60, 0) AS voice_minutes, "
-            "COALESCE(SUM(a.message_count), 0) + COALESCE(SUM(a.voice_seconds) / 60, 0) AS points "
-            "FROM users u "
-            "LEFT JOIN daily_activity a ON u.user_id = a.user_id "
-            "GROUP BY u.user_id "
-            "ORDER BY points DESC "
-            "LIMIT ?",
-            (limit,)
-        )
-        rows = await cursor.fetchall()
-        return [
-            ActivityLeaderboardEntry(
-                user_id=r["user_id"],
-                display_name=r["display_name"],
-                total_messages=int(r["messages"] or 0),
-                total_voice_minutes=int(r["voice_minutes"] or 0),
-            )
-            for r in rows
-        ]
 
     async def reset_all_balances(self) -> None:
         await self.db.execute("UPDATE users SET balance = 0")

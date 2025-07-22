@@ -19,10 +19,3 @@ class ActivityLog:
 class ActivityStats:
     total_messages: int
     total_voice_minutes: int
-
-@dataclass
-class ActivityLeaderboardEntry:
-    user_id: int
-    display_name: str
-    total_messages: int
-    total_voice_minutes: int

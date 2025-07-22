@@ -11,7 +11,6 @@ import asyncio
 
 from core import OverwatchBot
 from core.utiles import money_to_string
-from view import RankingView
 
 
 class EconomyCog(commands.Cog):
@@ -93,36 +92,17 @@ class EconomyCog(commands.Cog):
 
         await interaction.response.send_message(f"{받는분.mention}님에게 {money_to_string(금액)}을 성공적으로 보냈습니다.")
 
-    @app_commands.command(name="랭킹", description="서버 내 랭킹을 확인합니다.")
+    @app_commands.command(name="랭킹", description="서버 내 재화 랭킹을 확인합니다.")
     async def leaderboard(self, interaction: discord.Interaction):
-        view = RankingView(self._send_leaderboard)
-        await interaction.response.send_message("확인할 랭킹 종류를 선택하세요.", view=view, ephemeral=True)
+        leaderboard_users = await self.bot.db.users.get_balance_leaderboard()
+        description = []
+        medals = ["🥇", "🥈", "🥉"]
+        for i, user in enumerate(leaderboard_users):
+            rank = medals[i] if i < 3 else f"{i + 1}."
+            description.append(f"{rank} **{user.display_name}**: {money_to_string(user.balance)}")
 
-    async def _send_leaderboard(self, interaction: discord.Interaction, ranking_type: str):
-        limit = 50
-        if ranking_type == "activity":
-            users = await self.bot.db.users.get_activity_leaderboard(limit=limit)
-            users = [u for u in users if interaction.guild.get_member(u.user_id)][:10]
-            description = []
-            medals = ["🥇", "🥈", "🥉"]
-            for i, user in enumerate(users):
-                rank = medals[i] if i < 3 else f"{i + 1}."
-                description.append(
-                    f"{rank} **{user.display_name}**: {user.total_messages}메시지, {user.total_voice_minutes}분"
-                )
-            title = "활동량 랭킹"
-        else:
-            users = await self.bot.db.users.get_balance_leaderboard(limit=limit)
-            users = [u for u in users if interaction.guild.get_member(u.user_id)][:10]
-            description = []
-            medals = ["🥇", "🥈", "🥉"]
-            for i, user in enumerate(users):
-                rank = medals[i] if i < 3 else f"{i + 1}."
-                description.append(f"{rank} **{user.display_name}**: {money_to_string(user.balance)}")
-            title = "재화 랭킹"
-
-        embed = discord.Embed(title=title, description="\n".join(description), color=discord.Color.blue())
-        await interaction.response.edit_message(content=None, embed=embed, view=None)
+        embed = discord.Embed(title="재화 랭킹", description="\n".join(description), color=discord.Color.blue())
+        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="활동량", description="자신 또는 다른 유저의 활동량을 확인합니다.")
     @app_commands.describe(유저="활동량을 확인할 유저", 시작일="YYYY-MM-DD 형식", 종료일="YYYY-MM-DD 형식")

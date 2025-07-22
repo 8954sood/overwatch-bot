@@ -13,22 +13,6 @@ from view import ShopView, NicknameChangeModal
 class ShopCog(commands.Cog, name="상점"):
     def __init__(self, bot: OverwatchBot):
         self.bot = bot
-        try:
-            self.log_channel_id = int(os.getenv("SHOP_LOG_CHANNEL"))
-        except (TypeError, ValueError):
-            self.log_channel_id = None
-
-    async def log_purchase(self, member: discord.Member, item_name: str, price: int):
-        if not self.log_channel_id:
-            return
-        channel = self.bot.get_channel(self.log_channel_id)
-        if not channel:
-            return
-        embed = discord.Embed(title="구매 로그", color=discord.Color.blue())
-        embed.add_field(name="구매자", value=member.mention, inline=False)
-        embed.add_field(name="상품", value=item_name, inline=False)
-        embed.add_field(name="가격", value=money_to_string(price), inline=False)
-        await channel.send(embed=embed)
 
     async def purchase_callback(self, interaction: discord.Interaction, item_id: int):
         item = await self.bot.db.shop.get_item_by_id(item_id)
@@ -46,7 +30,6 @@ class ShopCog(commands.Cog, name="상점"):
             await self.bot.db.shop.add_to_inventory(user.user_id, item.id)
             message = f"아이템 **{item.name}**을(를) 구매하여 인벤토리에 추가했습니다."
             await interaction.response.send_message(message, ephemeral=True)
-            await self.log_purchase(interaction.user, item.name, item.price)
 
         elif item.item_type == "ROLE":
             role = interaction.guild.get_role(item.role_id)
@@ -66,7 +49,6 @@ class ShopCog(commands.Cog, name="상점"):
                 await self.bot.db.shop.add_temporary_role(user.user_id, role.id, expires_at.isoformat())
                 message += f"\n이 역할은 **{item.duration_days}일** 후에 만료됩니다."
             await interaction.response.send_message(message, ephemeral=True)
-            await self.log_purchase(interaction.user, role.name, item.price)
 
         elif item.item_type == "NICKNAME_CHANGE":
 
@@ -75,7 +57,6 @@ class ShopCog(commands.Cog, name="상점"):
                     await modal_interaction.user.edit(nick=new_nickname)
                     await self.bot.db.users.update_display_name(user.user_id, new_nickname)
                     await modal_interaction.response.send_message(f"닉네임을 성공적으로 '{new_nickname}'(으)로 변경했습니다.", ephemeral=True)
-                    await self.log_purchase(modal_interaction.user, "닉네임 변경권", item.price)
                 except discord.Forbidden:
                     await self.bot.db.users.update_balance(user.user_id, item.price)  # 롤백
                     await modal_interaction.response.send_message("닉네임을 변경할 권한이 없습니다.", ephemeral=True)
@@ -85,7 +66,7 @@ class ShopCog(commands.Cog, name="상점"):
 
             modal = NicknameChangeModal(nickname_callback)
             await interaction.response.send_modal(modal)
-        
+
     @app_commands.command(name="상점", description="구매 가능한 아이템 및 역할 목록을 봅니다.")
     async def shop(self, interaction: discord.Interaction):
         user = await self.bot.db.users.get_or_create_user(interaction.user.id, interaction.user.display_name)
