@@ -8,6 +8,7 @@ import datetime
 from core import OverwatchBot
 from core.utiles import money_to_string
 from view import ShopView, NicknameChangeModal
+import os
 
 
 class ShopCog(commands.Cog, name="상점"):
