@@ -8,7 +8,7 @@ from core import OverwatchBot
 
 load_dotenv()
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.message_content = True
 
 bot = OverwatchBot(command_prefix='!', intents=intents, help_command=None)
