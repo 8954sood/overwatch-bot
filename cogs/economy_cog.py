@@ -11,7 +11,7 @@ import asyncio
 
 from core import OverwatchBot
 from core.utiles import money_to_string
-from view import RankingView
+from view import RankingView, ItemSelectView
 
 
 class EconomyCog(commands.Cog):
@@ -122,6 +122,32 @@ class EconomyCog(commands.Cog):
             title = "재화 랭킹"
 
         embed = discord.Embed(title=title, description="\n".join(description), color=discord.Color.blue())
+        await interaction.response.edit_message(content=None, embed=embed, view=None)
+
+    @app_commands.command(name="아이템랭킹", description="특정 아이템을 가장 많이 보유한 유저를 확인합니다.")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def item_leaderboard(self, interaction: discord.Interaction):
+        items = await self.bot.db.shop.get_all_items()
+        if not items:
+            return await interaction.response.send_message("조회할 아이템이 없습니다.", ephemeral=True)
+        view = ItemSelectView(items, self._send_item_leaderboard)
+        await interaction.response.send_message("확인할 아이템을 선택하세요.", view=view, ephemeral=True)
+
+    async def _send_item_leaderboard(self, interaction: discord.Interaction, item_id: int):
+        item = await self.bot.db.shop.get_item_by_id(item_id)
+        if not item:
+            return await interaction.response.send_message("존재하지 않는 아이템입니다.", ephemeral=True)
+        holders = await self.bot.db.shop.get_item_leaderboard(item_id, limit=10)
+        if not holders:
+            description = "아이템을 가진 유저가 없습니다."
+        else:
+            medals = ["🥇", "🥈", "🥉"]
+            lines = []
+            for idx, h in enumerate(holders):
+                rank = medals[idx] if idx < 3 else f"{idx + 1}."
+                lines.append(f"{rank} **{h.display_name}**: {h.count}개")
+            description = "\n".join(lines)
+        embed = discord.Embed(title=f"{item.name} 보유 랭킹", description=description, color=discord.Color.green())
         await interaction.response.edit_message(content=None, embed=embed, view=None)
 
     @app_commands.command(name="활동량", description="자신 또는 다른 유저의 활동량을 확인합니다.")

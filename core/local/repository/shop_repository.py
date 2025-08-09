@@ -1,6 +1,6 @@
 import aiosqlite
 from typing import Optional, List
-from core.model import ShopItem, InventoryItem, TemporaryRole
+from core.model import ShopItem, InventoryItem, TemporaryRole, ItemLeaderboardEntry
 
 class ShopRepository:
     def __init__(self, db: aiosqlite.Connection):
@@ -46,6 +46,16 @@ class ShopRepository:
         )
         rows = await cursor.fetchall()
         return [InventoryItem(name=r['name'], count=r['count']) for r in rows]
+
+    async def get_item_leaderboard(self, item_id: int, limit: int = 10) -> List[ItemLeaderboardEntry]:
+        cursor = await self.db.execute(
+            "SELECT u.user_id, u.display_name, COUNT(i.id) as count FROM user_inventory i "
+            "JOIN users u ON i.user_id = u.user_id "
+            "WHERE i.shop_item_id = ? GROUP BY u.user_id ORDER BY count DESC LIMIT ?",
+            (item_id, limit),
+        )
+        rows = await cursor.fetchall()
+        return [ItemLeaderboardEntry(user_id=r['user_id'], display_name=r['display_name'], count=r['count']) for r in rows]
 
     async def add_to_inventory(self, user_id: int, shop_item_id: int):
         await self.db.execute(
