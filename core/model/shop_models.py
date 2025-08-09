@@ -18,6 +18,12 @@ class InventoryItem:
     count: int
 
 @dataclass
+class ItemLeaderboardEntry:
+    user_id: int
+    display_name: str
+    count: int
+
+@dataclass
 class TemporaryRole:
     id: int
     user_id: int
